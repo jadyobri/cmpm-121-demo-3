@@ -103,7 +103,7 @@ function createCell(cell: Cell) {
     const popUpBox = document.createElement("div");
 
     popUpBox.innerHTML = `
-                <div>A cache here at "${cell.i},${cell.j}". There are <span id="value">${coinAmount} </span></div>coins here
+                <div>A cache here at "${cell.i},${cell.j}". There are <span id="value">${coinAmount} </span> coins here </div>
                 <button id="get">get</button><button id="give">give</button>`;
 
     // will make a button that takes from the cell
