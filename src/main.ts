@@ -137,7 +137,6 @@ function createCell(cell: Cell) {
   rect.addTo(map);
 }
 
-// uses luck function and chance amount to determine whether to spawn or not
 function determineSpawn(cell: Cell, chance: number) {
   const luckCheck = luck([cell.i, cell.j].toString());
   if (luckCheck <= chance) {
@@ -145,10 +144,8 @@ function determineSpawn(cell: Cell, chance: number) {
   }
 }
 
-// location is put in determine spawn and adds it.
 function locationCheck(min: number, max: number) {
   for (let x = min; x <= max; x++) {
-    // for loop used for getting everything from min to max
     for (let y = min; y <= max; y++) {
       determineSpawn(
         {
@@ -162,20 +159,3 @@ function locationCheck(min: number, max: number) {
 }
 
 locationCheck(-NEIGHBORHOOD_SIZE, NEIGHBORHOOD_SIZE);
-
-//Notes for me:
-//10% of certain grids.
-//Creating a cell certain amount away from a cell.
-
-//Caculate based on
-
-//Calcate cell amount be based on the size of the cell length and width
-//Each cell has x, y coordinate
-
-//One function gets rect width and height (get rect for cell), returns
-
-//interface with Cell
-
-//CreateCell places rect
-
-// Add a rectangle to the map to represent the cache
