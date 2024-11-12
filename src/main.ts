@@ -98,7 +98,7 @@ function getRect(cell: Cell): GeoRect {
   // return used to get longitude and latitude of set point
   return {
     topL: {
-      // moving right now from OAKES_CLASSROOM (no longer the case)
+      // moving right now from Null Island
       // TILE used to shrink the size of the rectangle.
       lat: cell.i * TILE_DEGREES,
       lng: cell.j * TILE_DEGREES,
