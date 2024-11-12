@@ -20,18 +20,27 @@ const CACHE_SPAWN_PROBABILITY = 0.1;
 let coinCount = 0;
 
 // location of Oakes classroom on leaflet
-const OAKES_CLASSROOM = leaflet.latLng(36.98949379578401, -122.06277128548504);
+//const OAKES_CLASSROOM = leaflet.latLng(36.98949379578401, -122.06277128548504);
 
 // Create the map (element with id "map" is defined in index.html)
+interface Cell {
+  i: number;
+  j: number;
+}
+const origin = {
+  i: 0,
+  j: 0,
+};
+const originLeaf = leaflet.latLng(origin.i, origin.j);
+const playerMarker = leaflet.marker(originLeaf);
 const map = leaflet.map(document.getElementById("map")!, {
-  center: OAKES_CLASSROOM,
+  center: originLeaf,
   zoom: GAMEPLAY_ZOOM_LEVEL,
   minZoom: GAMEPLAY_ZOOM_LEVEL,
   maxZoom: GAMEPLAY_ZOOM_LEVEL,
   zoomControl: false,
   scrollWheelZoom: false,
 });
-
 // Populate the map with a background tile layer
 leaflet
   .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -47,13 +56,24 @@ geonCoinText.innerHTML = "coin amount: " + coinCount;
 app.append(geonCoinText);
 
 // Adds marker to Location
-const playerMarker = leaflet.marker(OAKES_CLASSROOM);
-playerMarker.addTo(map);
 
 // interface
-interface Cell {
-  i: number;
-  j: number;
+
+playerMarker.addTo(map);
+const knownCells = new Map<string, Cell>();
+function getConicalCell(cell: Cell): boolean {
+  //const cellKey = ;
+  const cellKey = " " + cell.i + " , " + cell.j;
+  //ask map questions about if it has the cell already filled
+  //
+  if (!knownCells.has(cellKey)) {
+    console.log("brand new");
+    knownCells.set(cellKey, cell);
+    return false;
+  } else {
+    console.log("got it already");
+    return true;
+  }
 }
 
 // Latitude/Longitude pairing
@@ -78,14 +98,14 @@ function getRect(cell: Cell): GeoRect {
   // return used to get longitude and latitude of set point
   return {
     topL: {
-      // moving right now from OAKES_CLASSROOM
+      // moving right now from OAKES_CLASSROOM (no longer the case)
       // TILE used to shrink the size of the rectangle.
-      lat: OAKES_CLASSROOM.lat + cell.i * TILE_DEGREES,
-      lng: OAKES_CLASSROOM.lng + cell.j * TILE_DEGREES,
+      lat: cell.i * TILE_DEGREES,
+      lng: cell.j * TILE_DEGREES,
     },
     bottomR: {
-      lat: OAKES_CLASSROOM.lat + (cell.i + 1) * TILE_DEGREES, // adding 1 so the shape gets width and height, otherwise is a dot.
-      lng: OAKES_CLASSROOM.lng + (cell.j + 1) * TILE_DEGREES,
+      lat: (cell.i + 1) * TILE_DEGREES, // adding 1 so the shape gets width and height, otherwise is a dot.
+      lng: (cell.j + 1) * TILE_DEGREES,
     },
   };
 }
@@ -93,6 +113,10 @@ function getRect(cell: Cell): GeoRect {
 function createCell(cell: Cell) {
   const bounds = getRect(cell); // bounds equal to whatever it returned
   let coinAmount = Math.round(100 * luck([cell.i, cell.j].toString())) + 1; // coin Amount deterministic choosing
+  const check = getConicalCell(cell);
+  if (check) {
+    return;
+  }
 
   // bounds calculates for you
   const rect = leaflet.rectangle([
@@ -158,4 +182,5 @@ function locationCheck(min: number, max: number) {
   }
 }
 
+locationCheck(-NEIGHBORHOOD_SIZE, NEIGHBORHOOD_SIZE);
 locationCheck(-NEIGHBORHOOD_SIZE, NEIGHBORHOOD_SIZE);
