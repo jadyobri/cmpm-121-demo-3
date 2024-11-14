@@ -18,6 +18,9 @@ const TILE_DEGREES = 1e-4;
 const NEIGHBORHOOD_SIZE = 8;
 const CACHE_SPAWN_PROBABILITY = 0.1;
 
+//the serial number for the next coin.
+let serialCountInTime = 0;
+
 // location of Oakes classroom on leaflet
 const OAKES_CLASSROOM = leaflet.latLng(36.98949379578401, -122.06277128548504);
 
@@ -144,7 +147,7 @@ function displayCacheForCell(cell: Cell) {
   const cacheCoins: GeoCoin[] = [];
   for (let x = 0; x < coinAmount; x++) {
     cacheCoins.push({
-      Serial: x,
+      Serial: serialCountInTime++, //increases by one to make serial count unique.
       i: cell.i,
       j: cell.j,
     });
