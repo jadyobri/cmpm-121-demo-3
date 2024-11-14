@@ -17,24 +17,18 @@ const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
 const NEIGHBORHOOD_SIZE = 8;
 const CACHE_SPAWN_PROBABILITY = 0.1;
-let coinCount = 0;
 
 // location of Oakes classroom on leaflet
-//const OAKES_CLASSROOM = leaflet.latLng(36.98949379578401, -122.06277128548504);
+const OAKES_CLASSROOM = leaflet.latLng(36.98949379578401, -122.06277128548504);
 
 // Create the map (element with id "map" is defined in index.html)
 interface Cell {
   i: number;
   j: number;
 }
-const origin = {
-  i: 0,
-  j: 0,
-};
-const originLeaf = leaflet.latLng(origin.i, origin.j);
-const playerMarker = leaflet.marker(originLeaf);
+const playerMarker = leaflet.marker(OAKES_CLASSROOM);
 const map = leaflet.map(document.getElementById("map")!, {
-  center: originLeaf,
+  center: playerMarker.getLatLng(),
   zoom: GAMEPLAY_ZOOM_LEVEL,
   minZoom: GAMEPLAY_ZOOM_LEVEL,
   maxZoom: GAMEPLAY_ZOOM_LEVEL,
@@ -50,9 +44,11 @@ leaflet
   })
   .addTo(map);
 
+const geoCoinPlayer: GeoCoin[] = [];
+
 // Text for geon coin amount
 const geonCoinText = document.createElement("h1");
-geonCoinText.innerHTML = "coin amount: " + coinCount;
+
 app.append(geonCoinText);
 
 // Adds marker to Location
@@ -62,7 +58,6 @@ app.append(geonCoinText);
 playerMarker.addTo(map);
 const knownCells = new Map<string, Cell>();
 function getConicalCell(cell: Cell): boolean {
-  //const cellKey = ;
   const cellKey = " " + cell.i + " , " + cell.j;
   //ask map questions about if it has the cell already filled
   //
@@ -88,13 +83,33 @@ interface GeoRect {
   bottomR: Latlng;
 }
 
+interface GeoCoin {
+  Serial: number;
+  i: number;
+  j: number;
+}
+
 // for just the coin count
-function updateCounter() {
-  geonCoinText.innerHTML = "coin amount: " + coinCount;
+function updateInventory() {
+  let coinListing = "coins: ";
+
+  for (const { i, j, Serial } of geoCoinPlayer) {
+    coinListing += `(${i}, ${j}, #${Serial})`;
+  }
+  geonCoinText.innerHTML = coinListing;
+}
+
+//turns coins to a list within strings
+function coinListToString(geoCoinPart: GeoCoin[]): string {
+  let geoString = "";
+  for (const { i, j, Serial } of geoCoinPart) {
+    geoString += `(${i}, ${j}, #${Serial}), \n`;
+  }
+  return geoString;
 }
 
 // Rectangle
-function getRect(cell: Cell): GeoRect {
+function getRectForCell(cell: Cell): GeoRect {
   // return used to get longitude and latitude of set point
   return {
     topL: {
@@ -110,12 +125,28 @@ function getRect(cell: Cell): GeoRect {
   };
 }
 
-function createCell(cell: Cell) {
-  const bounds = getRect(cell); // bounds equal to whatever it returned
-  let coinAmount = Math.round(100 * luck([cell.i, cell.j].toString())) + 1; // coin Amount deterministic choosing
+function getCellForPoint(point: Latlng): Cell {
+  return {
+    i: point.lat / TILE_DEGREES,
+    j: point.lng / TILE_DEGREES,
+  };
+}
+
+function displayCacheForCell(cell: Cell) {
+  const bounds = getRectForCell(cell); // bounds equal to whatever it returned
+  const coinAmount = Math.round(100 * luck([cell.i, cell.j].toString())) + 1; // coin Amount deterministic choosing
+
   const check = getConicalCell(cell);
   if (check) {
     return;
+  }
+  const cacheCoins: GeoCoin[] = [];
+  for (let x = 0; x < coinAmount; x++) {
+    cacheCoins.push({
+      Serial: x,
+      i: cell.i,
+      j: cell.j,
+    });
   }
 
   // bounds calculates for you
@@ -125,21 +156,22 @@ function createCell(cell: Cell) {
   ]);
   rect.bindPopup(() => {
     const popUpBox = document.createElement("div");
-
-    popUpBox.innerHTML = `
-                <div>A cache here at "${cell.i},${cell.j}". There are <span id="value">${coinAmount} </span> coins here </div>
+    let cacheString = coinListToString(cacheCoins);
+    const popUpText =
+      `<div>A cache here at "${cell.i},${cell.j}".  There are <span id="value"> ${cacheString} coins here </div>
                 <button id="get">get</button><button id="give">give</button>`;
+    popUpBox.innerHTML = popUpText;
 
     // will make a button that takes from the cell
     popUpBox
       .querySelector<HTMLButtonElement>("#get")!
       .addEventListener("click", () => {
-        if (coinAmount != 0) {
-          coinAmount--;
+        if (cacheCoins.length != 0) {
+          geoCoinPlayer.push(cacheCoins.pop()!);
+          cacheString = coinListToString(cacheCoins);
           popUpBox.querySelector<HTMLSpanElement>("#value")!.innerHTML =
-            coinAmount.toString(); // we can take value from this since we put the <span id = "value"> in front of this.
-          coinCount++;
-          updateCounter();
+            cacheString; // we can take value from this since we put the <span id = "value"> in front of this.
+          updateInventory();
         }
       });
 
@@ -147,12 +179,12 @@ function createCell(cell: Cell) {
     popUpBox
       .querySelector<HTMLButtonElement>("#give")!
       .addEventListener("click", () => {
-        if (coinCount != 0) {
-          coinAmount++;
+        if (geoCoinPlayer.length != 0) {
+          cacheCoins.push(geoCoinPlayer.pop()!);
+          cacheString = coinListToString(cacheCoins);
           popUpBox.querySelector<HTMLSpanElement>("#value")!.innerHTML =
-            coinAmount.toString();
-          coinCount--;
-          updateCounter();
+            cacheString;
+          updateInventory();
         }
       });
 
@@ -164,17 +196,17 @@ function createCell(cell: Cell) {
 function determineSpawn(cell: Cell, chance: number) {
   const luckCheck = luck([cell.i, cell.j].toString());
   if (luckCheck <= chance) {
-    createCell(cell);
+    displayCacheForCell(cell);
   }
 }
 
-function locationCheck(min: number, max: number) {
+function cacheSpawnNearCell(center: Cell, min: number, max: number) {
   for (let x = min; x <= max; x++) {
     for (let y = min; y <= max; y++) {
       determineSpawn(
         {
-          i: y,
-          j: x,
+          i: y + center.i,
+          j: x + center.j,
         },
         CACHE_SPAWN_PROBABILITY,
       );
@@ -182,5 +214,8 @@ function locationCheck(min: number, max: number) {
   }
 }
 
-locationCheck(-NEIGHBORHOOD_SIZE, NEIGHBORHOOD_SIZE);
-locationCheck(-NEIGHBORHOOD_SIZE, NEIGHBORHOOD_SIZE);
+cacheSpawnNearCell(
+  getCellForPoint(playerMarker.getLatLng()),
+  -NEIGHBORHOOD_SIZE,
+  NEIGHBORHOOD_SIZE,
+);
