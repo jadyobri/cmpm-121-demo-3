@@ -140,6 +140,7 @@ function displayCacheForCell(cell: Cell) {
   if (check) {
     return;
   }
+
   const cacheCoins: GeoCoin[] = [];
   for (let x = 0; x < coinAmount; x++) {
     cacheCoins.push({
@@ -156,10 +157,10 @@ function displayCacheForCell(cell: Cell) {
   ]);
   rect.bindPopup(() => {
     const popUpBox = document.createElement("div");
-    let cacheString = coinListToString(cacheCoins);
+    let cacheString = coinListToString(cacheCoins); //turns the list into a string singular value.
     const popUpText =
       `<div>A cache here at "${cell.i},${cell.j}".  There are <span id="value"> ${cacheString} coins here </div>
-                <button id="get">get</button><button id="give">give</button>`;
+                <button id="get">get</button><button id="give">give</button>`; //cacheString makes it easier to change later
     popUpBox.innerHTML = popUpText;
 
     // will make a button that takes from the cell
