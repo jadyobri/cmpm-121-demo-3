@@ -38,6 +38,7 @@ const map = leaflet.map(document.getElementById("map")!, {
   zoomControl: false,
   scrollWheelZoom: false,
 });
+
 // Populate the map with a background tile layer
 leaflet
   .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -47,6 +48,7 @@ leaflet
   })
   .addTo(map);
 
+//coin list for the player
 const geoCoinPlayer: GeoCoin[] = [];
 
 // Text for geon coin amount
@@ -55,21 +57,15 @@ const geonCoinText = document.createElement("h1");
 app.append(geonCoinText);
 
 // Adds marker to Location
-
-// interface
-
 playerMarker.addTo(map);
 const knownCells = new Map<string, Cell>();
 function getConicalCell(cell: Cell): boolean {
   const cellKey = " " + cell.i + " , " + cell.j;
   //ask map questions about if it has the cell already filled
-  //
   if (!knownCells.has(cellKey)) {
-    console.log("brand new");
     knownCells.set(cellKey, cell);
     return false;
   } else {
-    console.log("got it already");
     return true;
   }
 }
