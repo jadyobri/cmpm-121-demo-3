@@ -148,7 +148,6 @@ function displayCacheForCell(cell: Cell) {
       j: cell.j,
     });
   }
-
   // bounds calculates for you
   const rect = leaflet.rectangle([
     [bounds.topL.lat, bounds.topL.lng],
@@ -191,6 +190,33 @@ function displayCacheForCell(cell: Cell) {
     return popUpBox;
   });
   rect.addTo(map);
+}
+
+//Defining all of the buttons for each of the direction
+//dir
+
+const directionEffects: Record<string, [number, number]> = {
+  north: [1, 0],
+  south: [-1, 0],
+  west: [0, -1],
+  east: [0, 1],
+};
+
+for (const dir in directionEffects) {
+  const button = document.getElementById(dir);
+  const [Di, Dj] = directionEffects[dir];
+  button?.addEventListener("click", () => {
+    console.log(Di + ", " + Dj);
+    updatePlayerPosition(Di, Dj);
+  });
+}
+
+function updatePlayerPosition(i: number, j: number) {
+  const latLngTemp = playerMarker.getLatLng();
+  const latTemp = latLngTemp.lat;
+  const lngTemp = latLngTemp.lng;
+
+  playerMarker.setLatLng([latTemp + i, lngTemp + j]);
 }
 
 function determineSpawn(cell: Cell, chance: number) {
