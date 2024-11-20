@@ -196,10 +196,10 @@ function displayCacheForCell(cell: Cell) {
 //dir
 
 const directionEffects: Record<string, [number, number]> = {
-  north: [0.01, 0],
-  south: [-0.01, 0],
-  west: [0, -0.01],
-  east: [0, 0.01],
+  north: [0.001, 0],
+  south: [-0.001, 0],
+  west: [0, -0.001],
+  east: [0, 0.001],
 };
 
 //taking position of north, south, west, east, and making them into buttons.
