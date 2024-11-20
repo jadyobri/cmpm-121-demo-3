@@ -48,6 +48,7 @@ leaflet
   })
   .addTo(map);
 
+const rectangles: leaflet.Layer[] = [];
 //coin list for the player
 const geoCoinPlayer: GeoCoin[] = [];
 
@@ -59,14 +60,14 @@ app.append(geonCoinText);
 // Adds marker to Location
 playerMarker.addTo(map);
 const knownCells = new Map<string, Cell>();
-function getConicalCell(cell: Cell): boolean {
+function getConicalCell(cell: Cell): Cell {
   const cellKey = " " + cell.i + " , " + cell.j;
   //ask map questions about if it has the cell already filled
   if (!knownCells.has(cellKey)) {
     knownCells.set(cellKey, cell);
-    return false;
+    return cell;
   } else {
-    return true;
+    return knownCells.get(cellKey)!;
   }
 }
 
@@ -126,8 +127,8 @@ function getRectForCell(cell: Cell): GeoRect {
 
 function getCellForPoint(point: Latlng): Cell {
   return {
-    i: point.lat / TILE_DEGREES,
-    j: point.lng / TILE_DEGREES,
+    i: Math.round(point.lat / TILE_DEGREES),
+    j: Math.round(point.lng / TILE_DEGREES),
   };
 }
 
@@ -135,10 +136,7 @@ function displayCacheForCell(cell: Cell) {
   const bounds = getRectForCell(cell); // bounds equal to whatever it returned
   const coinAmount = Math.round(100 * luck([cell.i, cell.j].toString())) + 1; // coin Amount deterministic choosing
 
-  const check = getConicalCell(cell);
-  if (check) {
-    return;
-  }
+  cell = getConicalCell(cell);
 
   const cacheCoins: GeoCoin[] = [];
   for (let x = 0; x < coinAmount; x++) {
@@ -153,6 +151,7 @@ function displayCacheForCell(cell: Cell) {
     [bounds.topL.lat, bounds.topL.lng],
     [bounds.bottomR.lat, bounds.bottomR.lng],
   ]);
+  rectangles.push(rect);
   rect.bindPopup(() => {
     const popUpBox = document.createElement("div");
     let cacheString = coinListToString(cacheCoins); //turns the list into a string singular value.
@@ -196,10 +195,10 @@ function displayCacheForCell(cell: Cell) {
 //dir
 
 const directionEffects: Record<string, [number, number]> = {
-  north: [0.001, 0],
-  south: [-0.001, 0],
-  west: [0, -0.001],
-  east: [0, 0.001],
+  north: [TILE_DEGREES, 0],
+  south: [-TILE_DEGREES, 0],
+  west: [0, -TILE_DEGREES],
+  east: [0, TILE_DEGREES],
 };
 
 //taking position of north, south, west, east, and making them into buttons.
@@ -207,7 +206,6 @@ for (const dir in directionEffects) {
   const button = document.getElementById(dir);
   const [Di, Dj] = directionEffects[dir];
   button?.addEventListener("click", () => {
-    console.log(Di + ", " + Dj);
     updatePlayerPosition(Di, Dj);
     cacheSpawnNearCell(
       getCellForPoint(playerMarker.getLatLng()),
@@ -233,7 +231,15 @@ function determineSpawn(cell: Cell, chance: number) {
   }
 }
 
+function clearMap() {
+  for (const rect of rectangles) {
+    rect.remove();
+  }
+  rectangles.length = 0;
+}
+
 function cacheSpawnNearCell(center: Cell, min: number, max: number) {
+  clearMap();
   for (let x = min; x <= max; x++) {
     for (let y = min; y <= max; y++) {
       determineSpawn(
