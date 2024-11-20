@@ -196,18 +196,24 @@ function displayCacheForCell(cell: Cell) {
 //dir
 
 const directionEffects: Record<string, [number, number]> = {
-  north: [1, 0],
-  south: [-1, 0],
-  west: [0, -1],
-  east: [0, 1],
+  north: [0.01, 0],
+  south: [-0.01, 0],
+  west: [0, -0.01],
+  east: [0, 0.01],
 };
 
+//taking position of north, south, west, east, and making them into buttons.
 for (const dir in directionEffects) {
   const button = document.getElementById(dir);
   const [Di, Dj] = directionEffects[dir];
   button?.addEventListener("click", () => {
     console.log(Di + ", " + Dj);
     updatePlayerPosition(Di, Dj);
+    cacheSpawnNearCell(
+      getCellForPoint(playerMarker.getLatLng()),
+      -NEIGHBORHOOD_SIZE,
+      NEIGHBORHOOD_SIZE,
+    );
   });
 }
 
@@ -217,6 +223,7 @@ function updatePlayerPosition(i: number, j: number) {
   const lngTemp = latLngTemp.lng;
 
   playerMarker.setLatLng([latTemp + i, lngTemp + j]);
+  map.panTo(playerMarker.getLatLng()); //moves center
 }
 
 function determineSpawn(cell: Cell, chance: number) {
