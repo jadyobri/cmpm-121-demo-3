@@ -85,9 +85,7 @@ interface GeoCoin {
   i: number;
   j: number;
 }
-interface ObjectMemento {
-  getState(): Cell;
-}
+
 // for just the coin count
 function updateInventory() {
   let coinListing = "coins: ";
@@ -197,9 +195,7 @@ function displayCacheForCell(cell: Cell) {
   rect.addTo(map);
 }
 
-//Defining all of the buttons for each of the direction
-//dir
-
+// Defining all of the buttons for each of the direction
 const directionEffects: Record<string, [number, number]> = {
   north: [TILE_DEGREES, 0],
   south: [-TILE_DEGREES, 0],
@@ -207,7 +203,7 @@ const directionEffects: Record<string, [number, number]> = {
   east: [0, TILE_DEGREES],
 };
 
-//taking position of north, south, west, east, and making them into buttons.
+// taking position of north, south, west, east, and making them into buttons.
 for (const dir in directionEffects) {
   const button = document.getElementById(dir);
   const [Di, Dj] = directionEffects[dir];
@@ -227,7 +223,7 @@ function updatePlayerPosition(i: number, j: number) {
   const lngTemp = latLngTemp.lng;
 
   playerMarker.setLatLng([latTemp + i, lngTemp + j]);
-  map.panTo(playerMarker.getLatLng()); //moves center
+  map.panTo(playerMarker.getLatLng()); // moves center
 }
 
 function determineSpawn(cell: Cell, chance: number) {
@@ -240,7 +236,7 @@ const mementos: Map<Cell, string> = new Map();
 // clears out items
 function clearMap() {
   for (const [cell, coins] of cacheInventories) {
-    mementos.set(cell, JSON.stringify(coins));
+    mementos.set(cell, JSON.stringify(coins)); // saving them before they leave
   }
   for (const rect of rectangles) {
     rect.remove();
@@ -268,4 +264,4 @@ cacheSpawnNearCell(
   NEIGHBORHOOD_SIZE,
 );
 
-//When a square disappears and comes back has to be the same.
+// When a square disappears and comes back has to be the same.
