@@ -18,9 +18,6 @@ const TILE_DEGREES = 1e-4;
 const NEIGHBORHOOD_SIZE = 8;
 const CACHE_SPAWN_PROBABILITY = 0.1;
 
-//the serial number for the next coin.
-let serialCountInTime = 0;
-
 // location of Oakes classroom on leaflet
 const OAKES_CLASSROOM = leaflet.latLng(36.98949379578401, -122.06277128548504);
 
@@ -88,7 +85,9 @@ interface GeoCoin {
   i: number;
   j: number;
 }
-
+interface ObjectMemento {
+  getState(): Cell;
+}
 // for just the coin count
 function updateInventory() {
   let coinListing = "coins: ";
@@ -141,7 +140,7 @@ function displayCacheForCell(cell: Cell) {
   const cacheCoins: GeoCoin[] = [];
   for (let x = 0; x < coinAmount; x++) {
     cacheCoins.push({
-      Serial: serialCountInTime++, //increases by one to make serial count unique.
+      Serial: x, //increases by one to make serial count unique.
       i: cell.i,
       j: cell.j,
     });
@@ -231,11 +230,11 @@ function determineSpawn(cell: Cell, chance: number) {
   }
 }
 
+// clears out items
 function clearMap() {
   for (const rect of rectangles) {
     rect.remove();
   }
-  rectangles.length = 0;
 }
 
 function cacheSpawnNearCell(center: Cell, min: number, max: number) {
@@ -258,3 +257,5 @@ cacheSpawnNearCell(
   -NEIGHBORHOOD_SIZE,
   NEIGHBORHOOD_SIZE,
 );
+
+//When a square disappears and comes back has to be the same.
