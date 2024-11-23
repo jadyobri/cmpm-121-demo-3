@@ -131,19 +131,26 @@ function getCellForPoint(point: Latlng): Cell {
   };
 }
 
+const cacheInventories: Map<Cell, GeoCoin[]> = new Map();
+
 function displayCacheForCell(cell: Cell) {
   const bounds = getRectForCell(cell); // bounds equal to whatever it returned
   const coinAmount = Math.round(100 * luck([cell.i, cell.j].toString())) + 1; // coin Amount deterministic choosing
 
   cell = getConicalCell(cell);
-
   const cacheCoins: GeoCoin[] = [];
+  cacheInventories.set(cell, cacheCoins);
   for (let x = 0; x < coinAmount; x++) {
     cacheCoins.push({
-      Serial: x, //increases by one to make serial count unique.
+      Serial: x, // increases by one to make serial count unique.
       i: cell.i,
       j: cell.j,
     });
+  }
+  if (mementos.has(cell)) {
+    const recoveredCoins = JSON.parse(mementos.get(cell)!);
+    cacheCoins.length = 0;
+    cacheCoins.push(...recoveredCoins); // takes all from array and uses them as arguments to push
   }
   // bounds calculates for you
   const rect = leaflet.rectangle([
@@ -229,9 +236,12 @@ function determineSpawn(cell: Cell, chance: number) {
     displayCacheForCell(cell);
   }
 }
-
+const mementos: Map<Cell, string> = new Map();
 // clears out items
 function clearMap() {
+  for (const [cell, coins] of cacheInventories) {
+    mementos.set(cell, JSON.stringify(coins));
+  }
   for (const rect of rectangles) {
     rect.remove();
   }
