@@ -220,7 +220,7 @@ for (const dir in directionEffects) {
 // Sensor button for global location.
 document.getElementById("sensor")?.addEventListener("click", () => {
   if ("geolocation" in navigator) {
-    navigator.geolocation.getCurrentPosition(
+    navigator.geolocation.watchPosition(
       (position) => {
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
