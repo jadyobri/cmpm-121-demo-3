@@ -217,6 +217,31 @@ for (const dir in directionEffects) {
   });
 }
 
+// Sensor button for global location.
+document.getElementById("sensor")?.addEventListener("click", () => {
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
+        playerMarker.setLatLng([latitude, longitude]);
+        map.panTo(playerMarker.getLatLng());
+        cacheSpawnNearCell(
+          getCellForPoint(playerMarker.getLatLng()),
+          -NEIGHBORHOOD_SIZE,
+          NEIGHBORHOOD_SIZE,
+        );
+      },
+      (error) => {
+        console.error(`Error (${error.code}): ${error.message}`);
+      },
+    );
+  } else {
+    console.log("geo not");
+  }
+});
+
 function updatePlayerPosition(i: number, j: number) {
   const latLngTemp = playerMarker.getLatLng();
   const latTemp = latLngTemp.lat;
