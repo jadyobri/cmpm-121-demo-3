@@ -85,7 +85,7 @@ interface GeoCoin {
   i: number;
   j: number;
 }
-
+geonCoinText.innerHTML = "coins: ";
 // for just the coin count
 function updateInventory() {
   let coinListing = "coins: ";
@@ -216,6 +216,24 @@ for (const dir in directionEffects) {
     );
   });
 }
+
+// Reset Coin History
+document.getElementById("reset")?.addEventListener("click", () => {
+  const confirm = prompt(
+    'Are you sure you want to reset all your coins?  Type "yes" if so. ',
+  );
+  if (confirm?.toUpperCase() == "YES") {
+    mementos.clear();
+    cacheInventories.clear();
+    geoCoinPlayer.length = 0;
+    cacheSpawnNearCell(
+      getCellForPoint(playerMarker.getLatLng()),
+      -NEIGHBORHOOD_SIZE,
+      NEIGHBORHOOD_SIZE,
+    );
+    geonCoinText.innerHTML = "coins: ";
+  }
+});
 
 // Sensor button for global location.
 document.getElementById("sensor")?.addEventListener("click", () => {
