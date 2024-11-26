@@ -21,6 +21,20 @@ const CACHE_SPAWN_PROBABILITY = 0.1;
 // location of Oakes classroom on leaflet
 const OAKES_CLASSROOM = leaflet.latLng(36.98949379578401, -122.06277128548504);
 
+const gameEventBus: EventTarget = new EventTarget();
+
+const STATE_CHANGED = "State changed";
+gameEventBus.addEventListener(STATE_CHANGED, (_e) => {
+  saveGameState();
+  loadGameState();
+  updateInventory();
+  cacheSpawnNearCell(
+    getCellForPoint(playerMarker.getLatLng()),
+    -NEIGHBORHOOD_SIZE,
+    NEIGHBORHOOD_SIZE,
+  );
+});
+
 // Create the map (element with id "map" is defined in index.html)
 interface Cell {
   i: number;
@@ -35,7 +49,6 @@ const map = leaflet.map(document.getElementById("map")!, {
   zoomControl: false,
   scrollWheelZoom: false,
 });
-
 // Populate the map with a background tile layer
 leaflet
   .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -44,6 +57,53 @@ leaflet
       '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   })
   .addTo(map);
+
+interface SavedGame {
+  playerCurrentSpot: leaflet.LatLng;
+  playerCoins: GeoCoin[];
+  mementos: Array<[Cell, string]>;
+}
+
+function saveGameState() {
+  const playerCurrentSpot = playerMarker.getLatLng();
+  for (const [cell, coins] of cacheInventories) {
+    mementos.set(cell, JSON.stringify(coins)); // saving them before they leave
+  }
+  const saveState: SavedGame = {
+    // storing player's and cache's attributes
+    playerCurrentSpot,
+    playerCoins: geoCoinPlayer, // Store player's current coins
+    mementos: Array.from(mementos.entries()),
+  };
+  localStorage.setItem("saveState", JSON.stringify(saveState)); // sending to local storage as a string
+  console.log("saved");
+}
+
+function loadGameState() {
+  const reloadState = localStorage.getItem("saveState");
+
+  if (reloadState) {
+    // parsing recovered data
+    const recoverState = JSON.parse(reloadState) as SavedGame;
+
+    // resetting the poisiton back to saved
+    const { lat, lng } = recoverState.playerCurrentSpot;
+    playerMarker.setLatLng([lat, lng]);
+    map.panTo([lat, lng]);
+
+    if (Array.isArray(recoverState.mementos)) {
+      mementos.clear();
+      recoverState.mementos.forEach(([key, value]) => {
+        mementos.set(getConicalCell(key), value);
+      });
+    }
+
+    //setting to display to what was stored.
+    geoCoinPlayer.length = 0;
+    geoCoinPlayer.push(...recoverState.playerCoins);
+  }
+  console.log("loaded");
+}
 
 const rectangles: leaflet.Layer[] = [];
 //coin list for the player
@@ -173,8 +233,8 @@ function displayCacheForCell(cell: Cell) {
           cacheString = coinListToString(cacheCoins);
           popUpBox.querySelector<HTMLSpanElement>("#value")!.innerHTML =
             cacheString; // we can take value from this since we put the <span id = "value"> in front of this.
-          updateInventory();
         }
+        gameEventBus.dispatchEvent(new Event(STATE_CHANGED));
       });
 
     // will make the button that gives to the cell
@@ -186,8 +246,8 @@ function displayCacheForCell(cell: Cell) {
           cacheString = coinListToString(cacheCoins);
           popUpBox.querySelector<HTMLSpanElement>("#value")!.innerHTML =
             cacheString;
-          updateInventory();
         }
+        gameEventBus.dispatchEvent(new Event(STATE_CHANGED));
       });
 
     return popUpBox;
@@ -209,11 +269,7 @@ for (const dir in directionEffects) {
   const [Di, Dj] = directionEffects[dir];
   button?.addEventListener("click", () => {
     updatePlayerPosition(Di, Dj);
-    cacheSpawnNearCell(
-      getCellForPoint(playerMarker.getLatLng()),
-      -NEIGHBORHOOD_SIZE,
-      NEIGHBORHOOD_SIZE,
-    );
+    gameEventBus.dispatchEvent(new Event(STATE_CHANGED));
   });
 }
 
@@ -226,11 +282,7 @@ document.getElementById("reset")?.addEventListener("click", () => {
     mementos.clear();
     cacheInventories.clear();
     geoCoinPlayer.length = 0;
-    cacheSpawnNearCell(
-      getCellForPoint(playerMarker.getLatLng()),
-      -NEIGHBORHOOD_SIZE,
-      NEIGHBORHOOD_SIZE,
-    );
+    gameEventBus.dispatchEvent(new Event(STATE_CHANGED));
     geonCoinText.innerHTML = "coins: ";
   }
 });
@@ -244,12 +296,9 @@ document.getElementById("sensor")?.addEventListener("click", () => {
         const longitude = position.coords.longitude;
         console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
         playerMarker.setLatLng([latitude, longitude]);
+        gameEventBus.dispatchEvent(new Event(STATE_CHANGED));
+
         map.panTo(playerMarker.getLatLng());
-        cacheSpawnNearCell(
-          getCellForPoint(playerMarker.getLatLng()),
-          -NEIGHBORHOOD_SIZE,
-          NEIGHBORHOOD_SIZE,
-        );
       },
       (error) => {
         console.error(`Error (${error.code}): ${error.message}`);
@@ -278,9 +327,6 @@ function determineSpawn(cell: Cell, chance: number) {
 const mementos: Map<Cell, string> = new Map();
 // clears out items
 function clearMap() {
-  for (const [cell, coins] of cacheInventories) {
-    mementos.set(cell, JSON.stringify(coins)); // saving them before they leave
-  }
   for (const rect of rectangles) {
     rect.remove();
   }
@@ -300,11 +346,5 @@ function cacheSpawnNearCell(center: Cell, min: number, max: number) {
     }
   }
 }
-
-cacheSpawnNearCell(
-  getCellForPoint(playerMarker.getLatLng()),
-  -NEIGHBORHOOD_SIZE,
-  NEIGHBORHOOD_SIZE,
-);
-
-// When a square disappears and comes back has to be the same.
+loadGameState();
+gameEventBus.dispatchEvent(new Event(STATE_CHANGED));
