@@ -21,6 +21,9 @@ const CACHE_SPAWN_PROBABILITY = 0.1;
 // location of Oakes classroom on leaflet
 const OAKES_CLASSROOM = leaflet.latLng(36.98949379578401, -122.06277128548504);
 
+// history of player moves
+const pastMoves: leaflet.LatLng[] = [OAKES_CLASSROOM]; // takes the past moves from latitude and longitude and pushes to array
+
 const gameEventBus: EventTarget = new EventTarget();
 
 const STATE_CHANGED = "State changed";
@@ -62,6 +65,7 @@ interface SavedGame {
   playerCurrentSpot: leaflet.LatLng;
   playerCoins: GeoCoin[];
   mementos: Array<[Cell, string]>;
+  movementData: leaflet.LatLng[];
 }
 
 function saveGameState() {
@@ -74,9 +78,9 @@ function saveGameState() {
     playerCurrentSpot,
     playerCoins: geoCoinPlayer, // Store player's current coins
     mementos: Array.from(mementos.entries()),
+    movementData: pastMoves,
   };
   localStorage.setItem("saveState", JSON.stringify(saveState)); // sending to local storage as a string
-  console.log("saved");
 }
 
 function loadGameState() {
@@ -98,15 +102,24 @@ function loadGameState() {
       });
     }
 
-    //setting to display to what was stored.
+    // setting to display to what was stored.
     geoCoinPlayer.length = 0;
     geoCoinPlayer.push(...recoverState.playerCoins);
+    pastMoves.length = 0;
+    pastMoves.push(...recoverState.movementData);
+
+    if (pastMoves.length == 1) {
+      // used for when resetting to make sure if player spot is only location data
+      map.removeLayer(movementLine);
+    } else {
+      map.addLayer(movementLine); // adding it back to the screen when gone
+      movementLine.setLatLngs(pastMoves); // sets the movement line to saved one
+    }
   }
-  console.log("loaded");
 }
 
 const rectangles: leaflet.Layer[] = [];
-//coin list for the player
+// coin list for the player
 const geoCoinPlayer: GeoCoin[] = [];
 
 // Text for geon coin amount
@@ -119,7 +132,7 @@ playerMarker.addTo(map);
 const knownCells = new Map<string, Cell>();
 function getConicalCell(cell: Cell): Cell {
   const cellKey = " " + cell.i + " , " + cell.j;
-  //ask map questions about if it has the cell already filled
+  // ask map questions about if it has the cell already filled
   if (!knownCells.has(cellKey)) {
     knownCells.set(cellKey, cell);
     return cell;
@@ -156,7 +169,7 @@ function updateInventory() {
   geonCoinText.innerHTML = coinListing;
 }
 
-//turns coins to a list within strings
+// turns coins to a list within strings
 function coinListToString(geoCoinPart: GeoCoin[]): string {
   let geoString = "";
   for (const { i, j, Serial } of geoCoinPart) {
@@ -269,6 +282,7 @@ for (const dir in directionEffects) {
   const [Di, Dj] = directionEffects[dir];
   button?.addEventListener("click", () => {
     updatePlayerPosition(Di, Dj);
+
     gameEventBus.dispatchEvent(new Event(STATE_CHANGED));
   });
 }
@@ -282,6 +296,8 @@ document.getElementById("reset")?.addEventListener("click", () => {
     mementos.clear();
     cacheInventories.clear();
     geoCoinPlayer.length = 0;
+    pastMoves.length = 0;
+    pastMoves.push(playerMarker.getLatLng());
     gameEventBus.dispatchEvent(new Event(STATE_CHANGED));
     geonCoinText.innerHTML = "coins: ";
   }
@@ -294,28 +310,39 @@ document.getElementById("sensor")?.addEventListener("click", () => {
       (position) => {
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
-        console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
         playerMarker.setLatLng([latitude, longitude]);
         gameEventBus.dispatchEvent(new Event(STATE_CHANGED));
 
         map.panTo(playerMarker.getLatLng());
+        const updatedPosition = {
+          lat: latitude,
+          lng: longitude,
+        };
+        drawLine(updatedPosition);
       },
       (error) => {
         console.error(`Error (${error.code}): ${error.message}`);
       },
     );
-  } else {
-    console.log("geo not");
   }
 });
 
 function updatePlayerPosition(i: number, j: number) {
   const latLngTemp = playerMarker.getLatLng();
-  const latTemp = latLngTemp.lat;
-  const lngTemp = latLngTemp.lng;
+  const latTemp = latLngTemp.lat + i;
+  const lngTemp = latLngTemp.lng + j;
 
-  playerMarker.setLatLng([latTemp + i, lngTemp + j]);
+  playerMarker.setLatLng([latTemp, lngTemp]);
+  const updatedPosition = {
+    lat: latTemp,
+    lng: lngTemp,
+  };
   map.panTo(playerMarker.getLatLng()); // moves center
+  drawLine(updatedPosition);
+}
+
+function drawLine(latlng: Latlng) {
+  pastMoves.push(leaflet.latLng(latlng));
 }
 
 function determineSpawn(cell: Cell, chance: number) {
@@ -346,5 +373,13 @@ function cacheSpawnNearCell(center: Cell, min: number, max: number) {
     }
   }
 }
+
+// Note: take a few seconds for line to show up when sensor button is clicked
+const movementLine = leaflet // uses array to make a red line of movment history
+  .polyline(pastMoves, {
+    color: "red",
+    weight: 3,
+  })
+  .addTo(map);
 loadGameState();
 gameEventBus.dispatchEvent(new Event(STATE_CHANGED));
