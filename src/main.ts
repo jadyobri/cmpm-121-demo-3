@@ -38,11 +38,11 @@ gameEventBus.addEventListener(STATE_CHANGED, (_e) => {
   );
 });
 
-// Create the map (element with id "map" is defined in index.html)
 interface Cell {
   i: number;
   j: number;
 }
+
 const playerMarker = leaflet.marker(OAKES_CLASSROOM);
 const map = leaflet.map(document.getElementById("map")!, {
   center: playerMarker.getLatLng(),
